@@ -38,12 +38,91 @@ Ensure you have the following tools installed:
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/sergioparamo/cloud-native-gitops.git
 cd cloud-native-gitops
 ```
 
-### 4. Deploy the NestJS API to Kubernetes
+### 2. Provision the Local Infrastructure
+
+Spin up a Kind cluster, install ArgoCD, and build/load the NestJS image — all in a single Make target:
+
 ```bash
 make setup-all
+```
+
+Under the hood this runs the following targets in order (see `Makefile`):
+
+| Target           | Purpose                                                                     |
+| ---------------- | --------------------------------------------------------------------------- |
+| `create-cluster` | Creates the `gitops-local` Kind cluster from `cluster-config.yaml`.         |
+| `install-argocd` | Installs ArgoCD into the `argocd` namespace and waits until ready.          |
+| `build-image`    | Builds `nestjs-api:local` from `apps/my-app/nestjs-api/Dockerfile`.         |
+| `load-image`     | Loads the local image into the Kind node so `imagePullPolicy: Never` works. |
+
+> The Kind config maps `containerPort: 30080` → `hostPort: 8080`, so the NodePort service will be reachable at `http://localhost:8080`.
+
+### 3. Register the App with ArgoCD (GitOps Sync)
+
+Apply the ArgoCD `Application` manifest so the cluster starts pulling `apps/my-app/` from this repo and reconciling it automatically:
+
+```bash
+kubectl apply -f apps/my-app/argocd-app.yaml
+```
+
+This creates the `nestjs-gitops-app` Application with `automated.prune` and `selfHeal` enabled — meaning any drift in the cluster will be corrected back to whatever is committed under `apps/my-app/`.
+
+### 4. (Optional) Access the ArgoCD UI
+
+```bash
+# Forward the ArgoCD API server to localhost:8081
+kubectl port-forward svc/argocd-server -n argocd 8081:443
+
+# Get the initial admin password
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d && echo
+```
+
+Then open <https://localhost:8081> and log in as `admin` with the password above.
+
+### 5. Verify the Deployment
+
+ArgoCD will deploy the `Deployment` and `Service` defined in `apps/my-app/deployment.yaml` (2 replicas, NodePort `30080`). Confirm they are healthy:
+
+```bash
+kubectl get pods -l app=nestjs-api
+kubectl get svc nestjs-api-service
+```
+
+### 6. Hit the API
+
+The service is reachable on the host via the Kind port mapping:
+
+```bash
+# Health check
+curl http://localhost:8080/
+
+# List tasks
+curl http://localhost:8080/tasks
+
+# Create a task
+curl -X POST http://localhost:8080/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Try GitOps"}'
+
+# Delete a task
+curl -X DELETE http://localhost:8080/tasks/1
+```
+
+### 7. Trigger a GitOps Update
+
+Make a change inside `apps/my-app/` (for example, bump `replicas` in `deployment.yaml`), commit, and push. ArgoCD will detect the change in Git and reconcile the cluster automatically — no `kubectl apply` required.
+
+### 8. Tear Down
+
+When you're done, delete the cluster (and everything in it) with:
+
+```bash
+make delete-cluster
 ```
