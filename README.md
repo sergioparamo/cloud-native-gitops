@@ -6,9 +6,9 @@ A complete, production-ready **Cloud Native local development ecosystem** that d
 
 ## 🧰 CNCF Landscape Technologies Used
 
-* **Orchestration & Management:** [Kubernetes](https://landscape.cncf.io/?item=orchestration-management--scheduling--kubernetes) (via [Kind](https://kind.sigs.k8s.io/) for resource-efficient local nodes).
-* **Application Definition & Development:** [ArgoCD](https://landscape.cncf.io/?item=app-definition-development--continuous-delivery--argo) (acting as the declarative GitOps engine).
-* **App Definition & Build:** [Docker](https://landscape.cncf.io/?item=container-runtime--containerd) (Multi-stage builds for minimal image sizes).
+* **Orchestration & Management:** [Kubernetes](https://landscape.cncf.io/?item=orchestration-management--scheduling-orchestration--kubernetes) (via [Kind](https://landscape.cncf.io/?item=platform--certified-kubernetes-installer--kind) for resource-efficient local nodes).
+* **Application Definition & Development:** [ArgoCD](https://landscape.cncf.io/?item=app-definition-and-development--continuous-integration-delivery--argo) (acting as the declarative GitOps engine).
+* **App Definition & Build:** [Docker](https://landscape.cncf.io/?item=cncf-members--silver--docker-member) (Multi-stage builds for minimal image sizes).
 
 ---
 
